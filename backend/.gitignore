@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+*.pyc
+
+# Model files
+models/*.pt
+models/*.pth
+models/*.onnx
+models/training_history.json
+models/test_results.json
+models/class_names.json
+models/*.png
+
+# Dataset
+data/raw/
+data/processed/
+*.zip
+*.tar.gz
+
+# Logs
+logs/
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Training outputs
+training_curves.png
+per_class_accuracy.png
+dataset_distribution.png
+
+# Kaggle
+.kaggle/
+kaggle.json
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
