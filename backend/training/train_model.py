@@ -7,6 +7,8 @@ from pathlib import Path
 import json
 from datetime import datetime
 import time
+from sklearn.metrics import precision_recall_fscore_support, confusion_matrix
+import numpy as np
 
 
 class ModelTrainer:
@@ -65,8 +67,14 @@ class ModelTrainer:
         self.history = {
             'train_loss': [],
             'train_acc': [],
+            'train_precision': [],
+            'train_recall': [],
+            'train_f1': [],
             'val_loss': [],
             'val_acc': [],
+            'val_precision': [],
+            'val_recall': [],
+            'val_f1': [],
             'epochs': []
         }
     
@@ -191,8 +199,8 @@ class ModelTrainer:
         """Train for one epoch"""
         self.model.train()
         running_loss = 0.0
-        correct = 0
-        total = 0
+        all_preds = []
+        all_labels = []
         
         for inputs, labels in self.train_loader:
             inputs = inputs.to(self.device)
@@ -212,20 +220,25 @@ class ModelTrainer:
             # Statistics
             running_loss += loss.item() * inputs.size(0)
             _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
+            
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
         
-        epoch_loss = running_loss / total
-        epoch_acc = correct / total
+        # Calculate metrics
+        epoch_loss = running_loss / len(all_labels)
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            all_labels, all_preds, average='weighted', zero_division=0
+        )
+        accuracy = np.mean(np.array(all_preds) == np.array(all_labels))
         
-        return epoch_loss, epoch_acc
+        return epoch_loss, accuracy, precision, recall, f1
     
     def validate(self) -> tuple:
         """Validate the model"""
         self.model.eval()
         running_loss = 0.0
-        correct = 0
-        total = 0
+        all_preds = []
+        all_labels = []
         
         with torch.no_grad():
             for inputs, labels in self.val_loader:
@@ -239,13 +252,18 @@ class ModelTrainer:
                 # Statistics
                 running_loss += loss.item() * inputs.size(0)
                 _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+                
+                all_preds.extend(predicted.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
         
-        epoch_loss = running_loss / total
-        epoch_acc = correct / total
+        # Calculate metrics
+        epoch_loss = running_loss / len(all_labels)
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            all_labels, all_preds, average='weighted', zero_division=0
+        )
+        accuracy = np.mean(np.array(all_preds) == np.array(all_labels))
         
-        return epoch_loss, epoch_acc
+        return epoch_loss, accuracy, precision, recall, f1
     
     def train(self):
         """Main training loop"""
@@ -260,10 +278,10 @@ class ModelTrainer:
             epoch_start = time.time()
             
             # Train
-            train_loss, train_acc = self.train_epoch()
+            train_loss, train_acc, train_precision, train_recall, train_f1 = self.train_epoch()
             
             # Validate
-            val_loss, val_acc = self.validate()
+            val_loss, val_acc, val_precision, val_recall, val_f1 = self.validate()
             
             # Learning rate scheduling
             self.scheduler.step(val_loss)
@@ -271,16 +289,22 @@ class ModelTrainer:
             # Update history
             self.history['train_loss'].append(train_loss)
             self.history['train_acc'].append(train_acc)
+            self.history['train_precision'].append(train_precision)
+            self.history['train_recall'].append(train_recall)
+            self.history['train_f1'].append(train_f1)
             self.history['val_loss'].append(val_loss)
             self.history['val_acc'].append(val_acc)
+            self.history['val_precision'].append(val_precision)
+            self.history['val_recall'].append(val_recall)
+            self.history['val_f1'].append(val_f1)
             self.history['epochs'].append(epoch + 1)
             
             epoch_time = time.time() - epoch_start
             
             # Print progress
             print(f"\nEpoch [{epoch+1}/{self.num_epochs}] - {epoch_time:.2f}s")
-            print(f"  Train Loss: {train_loss:.4f} | Train Acc: {train_acc*100:.2f}%")
-            print(f"  Val Loss:   {val_loss:.4f} | Val Acc:   {val_acc*100:.2f}%")
+            print(f"  Train Loss: {train_loss:.4f} | Acc: {train_acc*100:.2f}% | P: {train_precision*100:.2f}% | R: {train_recall*100:.2f}% | F1: {train_f1*100:.2f}%")
+            print(f"  Val Loss:   {val_loss:.4f} | Acc: {val_acc*100:.2f}% | P: {val_precision*100:.2f}% | R: {val_recall*100:.2f}% | F1: {val_f1*100:.2f}%")
             
             # Save best model
             if val_acc > best_val_acc:
@@ -303,8 +327,8 @@ class ModelTrainer:
         print("="*60)
         
         self.model.eval()
-        correct = 0
-        total = 0
+        all_preds = []
+        all_labels = []
         class_correct = [0] * self.num_classes
         class_total = [0] * self.num_classes
         
@@ -316,8 +340,8 @@ class ModelTrainer:
                 outputs = self.model(inputs)
                 _, predicted = torch.max(outputs.data, 1)
                 
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+                all_preds.extend(predicted.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
                 
                 # Per-class accuracy
                 c = (predicted == labels).squeeze()
@@ -326,22 +350,50 @@ class ModelTrainer:
                     class_correct[label] += c[i].item()
                     class_total[label] += 1
         
-        test_acc = correct / total
+        # Calculate overall metrics
+        test_acc = np.mean(np.array(all_preds) == np.array(all_labels))
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            all_labels, all_preds, average='weighted', zero_division=0
+        )
         
-        print(f"\nOverall Test Accuracy: {test_acc*100:.2f}%")
-        print("\nPer-Class Accuracy:")
-        print("-" * 60)
+        # Calculate per-class metrics
+        per_class_precision, per_class_recall, per_class_f1, _ = precision_recall_fscore_support(
+            all_labels, all_preds, average=None, zero_division=0
+        )
+        
+        # Confusion matrix
+        cm = confusion_matrix(all_labels, all_preds)
+        
+        print(f"\nOverall Test Metrics:")
+        print(f"  Accuracy:  {test_acc*100:.2f}%")
+        print(f"  Precision: {precision*100:.2f}%")
+        print(f"  Recall:    {recall*100:.2f}%")
+        print(f"  F1-Score:  {f1*100:.2f}%")
+        
+        print("\nPer-Class Metrics:")
+        print("-" * 80)
+        print(f"{'Class':<40} {'Acc':<8} {'Precision':<12} {'Recall':<10} {'F1-Score':<10}")
+        print("-" * 80)
         
         results = {
             'overall_accuracy': test_acc,
-            'per_class_accuracy': {}
+            'overall_precision': precision,
+            'overall_recall': recall,
+            'overall_f1': f1,
+            'confusion_matrix': cm.tolist(),
+            'per_class_metrics': {}
         }
         
         for i in range(self.num_classes):
             if class_total[i] > 0:
                 acc = class_correct[i] / class_total[i]
-                results['per_class_accuracy'][self.class_names[i]] = acc
-                print(f"{self.class_names[i]:40s} {acc*100:.2f}%")
+                results['per_class_metrics'][self.class_names[i]] = {
+                    'accuracy': acc,
+                    'precision': per_class_precision[i],
+                    'recall': per_class_recall[i],
+                    'f1': per_class_f1[i]
+                }
+                print(f"{self.class_names[i]:40s} {acc*100:5.2f}%   {per_class_precision[i]*100:5.2f}%      {per_class_recall[i]*100:5.2f}%    {per_class_f1[i]*100:5.2f}%")
         
         return results
     
