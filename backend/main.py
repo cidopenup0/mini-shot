@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 import uvicorn
 from datetime import datetime
 import os
@@ -11,10 +12,32 @@ from app.inference import InferenceEngine
 from app.logger import PredictionLogger
 from app.config import settings
 
+# Initialize components
+model_loader = ModelLoader(settings.MODEL_PATH)
+preprocessor = ImagePreprocessor()
+inference_engine = InferenceEngine(model_loader)
+logger = PredictionLogger(settings.LOG_DB_PATH)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for startup and shutdown"""
+    # Startup
+    print("Loading model...")
+    model_loader.load_model()
+    print("Model loaded successfully")
+    logger.initialize()
+    print("Logger initialized")
+    yield
+    # Shutdown (cleanup if needed)
+    print("Shutting down...")
+
+
 app = FastAPI(
     title="Plant Disease Detection API",
     description="Backend API for detecting plant diseases from leaf images",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Configure CORS
@@ -25,22 +48,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize components
-model_loader = ModelLoader(settings.MODEL_PATH)
-preprocessor = ImagePreprocessor()
-inference_engine = InferenceEngine(model_loader)
-logger = PredictionLogger(settings.LOG_DB_PATH)
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Load model on startup"""
-    print("Loading model...")
-    model_loader.load_model()
-    print("Model loaded successfully")
-    logger.initialize()
-    print("Logger initialized")
 
 
 @app.get("/")
@@ -98,17 +105,11 @@ async def predict_disease(file: UploadFile = File(...)):
         
         # Prepare response
         response = {
-            "success": True,
-            "prediction": {
-                "disease": prediction_result["class_name"],
-                "confidence": prediction_result["confidence"],
-                "class_id": prediction_result["class_id"]
-            },
-            "metadata": {
-                "filename": file.filename,
-                "timestamp": datetime.now().isoformat(),
-                "model_version": settings.MODEL_VERSION
-            }
+            "class": prediction_result["class_name"],
+            "confidence": prediction_result["confidence"],
+            "class_id": prediction_result["class_id"],
+            "filename": file.filename,
+            "timestamp": datetime.now().isoformat()
         }
         
         # Log prediction

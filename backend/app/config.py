@@ -1,4 +1,5 @@
 import os
+import json
 from pathlib import Path
 
 class Settings:
@@ -20,37 +21,41 @@ class Settings:
     # Logging
     LOG_DB_PATH = os.getenv("LOG_DB_PATH", str(BASE_DIR / "logs" / "predictions.db"))
     
-    # Disease classes - Update this based on your trained model
-    CLASS_NAMES = [
-        "Apple___Apple_scab",
-        "Apple___Black_rot",
-        "Apple___Cedar_apple_rust",
-        "Apple___healthy",
-        "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
-        "Corn_(maize)___Common_rust_",
-        "Corn_(maize)___Northern_Leaf_Blight",
-        "Corn_(maize)___healthy",
-        "Grape___Black_rot",
-        "Grape___Esca_(Black_Measles)",
-        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
-        "Grape___healthy",
-        "Potato___Early_blight",
-        "Potato___Late_blight",
-        "Potato___healthy",
-        "Tomato___Bacterial_spot",
-        "Tomato___Early_blight",
-        "Tomato___Late_blight",
-        "Tomato___Leaf_Mold",
-        "Tomato___Septoria_leaf_spot",
-        "Tomato___Spider_mites Two-spotted_spider_mite",
-        "Tomato___Target_Spot",
-        "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
-        "Tomato___Tomato_mosaic_virus",
-        "Tomato___healthy"
-    ]
+    # Disease classes - Load from class_names.json
+    CLASS_NAMES_PATH = BASE_DIR / "models" / "class_names.json"
+    
+    def _load_class_names(self):
+        """Load class names from JSON file"""
+        try:
+            with open(self.CLASS_NAMES_PATH, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            print(f"Warning: class_names.json not found at {self.CLASS_NAMES_PATH}")
+            # Fallback to the 15 classes from your dataset
+            return [
+                "Pepper__bell___Bacterial_spot",
+                "Pepper__bell___healthy",
+                "Potato___Early_blight",
+                "Potato___Late_blight",
+                "Potato___healthy",
+                "Tomato_Bacterial_spot",
+                "Tomato_Early_blight",
+                "Tomato_Late_blight",
+                "Tomato_Leaf_Mold",
+                "Tomato_Septoria_leaf_spot",
+                "Tomato_Spider_mites_Two_spotted_spider_mite",
+                "Tomato__Target_Spot",
+                "Tomato__Tomato_YellowLeaf__Curl_Virus",
+                "Tomato__Tomato_mosaic_virus",
+                "Tomato_healthy"
+            ]
+    
+    CLASS_NAMES = None  # Will be loaded dynamically
     
     # File validation
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
     ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
 settings = Settings()
+# Load class names after settings initialization
+settings.CLASS_NAMES = settings._load_class_names()
