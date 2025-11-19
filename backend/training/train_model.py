@@ -143,37 +143,23 @@ class ModelTrainer:
         print(f"  Test samples: {len(test_dataset)}")
         print(f"  Number of classes: {len(self.class_names)}")
     
-    def build_model(self, model_name: str = 'resnet50', pretrained: bool = True):
+    def build_model(self, pretrained: bool = True):
         """
-        Build the CNN model
+        Build ResNet50 model
         
         Args:
-            model_name: Name of the model architecture (resnet50, resnet18, efficientnet_b0)
-            pretrained: Whether to use pretrained weights
+            pretrained: Whether to use pretrained ImageNet weights
         """
-        print(f"\nBuilding model: {model_name}")
+        print(f"\nBuilding ResNet50 model")
         print(f"Pretrained: {pretrained}")
         
-        if model_name == 'resnet50':
-            weights = models.ResNet50_Weights.DEFAULT if pretrained else None
-            self.model = models.resnet50(weights=weights)
-            num_features = self.model.fc.in_features
-            self.model.fc = nn.Linear(num_features, self.num_classes)
+        # Load ResNet50 with pretrained weights
+        weights = models.ResNet50_Weights.DEFAULT if pretrained else None
+        self.model = models.resnet50(weights=weights)
         
-        elif model_name == 'resnet18':
-            weights = models.ResNet18_Weights.DEFAULT if pretrained else None
-            self.model = models.resnet18(weights=weights)
-            num_features = self.model.fc.in_features
-            self.model.fc = nn.Linear(num_features, self.num_classes)
-        
-        elif model_name == 'efficientnet_b0':
-            weights = models.EfficientNet_B0_Weights.DEFAULT if pretrained else None
-            self.model = models.efficientnet_b0(weights=weights)
-            num_features = self.model.classifier[1].in_features
-            self.model.classifier[1] = nn.Linear(num_features, self.num_classes)
-        
-        else:
-            raise ValueError(f"Unsupported model: {model_name}")
+        # Replace final fully connected layer
+        num_features = self.model.fc.in_features
+        self.model.fc = nn.Linear(num_features, self.num_classes)
         
         # Move model to device
         self.model = self.model.to(self.device)
@@ -410,14 +396,14 @@ class ModelTrainer:
     
     def save_history(self):
         """Save training history"""
-        history_path = self.model_save_path.parent / "training_history.json"
+        history_path = self.model_save_path.parent / "training_history_new.json"
         with open(history_path, 'w') as f:
             json.dump(self.history, f, indent=2)
         print(f"\nTraining history saved to: {history_path}")
     
     def save_class_names(self):
         """Save class names for reference"""
-        class_names_path = self.model_save_path.parent / "class_names.json"
+        class_names_path = self.model_save_path.parent / "class_names_new.json"
         with open(class_names_path, 'w') as f:
             json.dump(self.class_names, f, indent=2)
         print(f"Class names saved to: {class_names_path}")
@@ -430,11 +416,10 @@ def main():
     
     # Configuration
     DATA_DIR = "data/processed"
-    MODEL_SAVE_PATH = "models/plant_disease_model.pt"
+    MODEL_SAVE_PATH = "models/plant_disease_model_new.pt"
     NUM_EPOCHS = 25
     BATCH_SIZE = 32
     LEARNING_RATE = 0.001
-    MODEL_ARCHITECTURE = 'resnet50'  # Options: resnet50, resnet18, efficientnet_b0
     
     # Get number of classes from data
     train_dir = Path(DATA_DIR) / 'train'
@@ -445,7 +430,7 @@ def main():
     print(f"  Data directory: {DATA_DIR}")
     print(f"  Model save path: {MODEL_SAVE_PATH}")
     print(f"  Number of classes: {NUM_CLASSES}")
-    print(f"  Model architecture: {MODEL_ARCHITECTURE}")
+    print(f"  Model architecture: ResNet50")
     print(f"  Epochs: {NUM_EPOCHS}")
     print(f"  Batch size: {BATCH_SIZE}")
     print(f"  Learning rate: {LEARNING_RATE}")
@@ -463,8 +448,8 @@ def main():
     # Setup data loaders
     trainer.setup_data_loaders()
     
-    # Build model
-    trainer.build_model(model_name=MODEL_ARCHITECTURE, pretrained=True)
+    # Build ResNet50 model
+    trainer.build_model(pretrained=True)
     
     # Train model
     trainer.train()

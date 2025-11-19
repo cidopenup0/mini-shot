@@ -87,8 +87,14 @@ class PlantDiseaseTrainer:
         self.history = {
             'train_loss': [],
             'train_acc': [],
+            'train_precision': [],
+            'train_recall': [],
+            'train_f1': [],
             'val_loss': [],
             'val_acc': [],
+            'val_precision': [],
+            'val_recall': [],
+            'val_f1': [],
             'learning_rates': [],
             'epochs': []
         }
@@ -152,32 +158,17 @@ class PlantDiseaseTrainer:
         print("Data loaders ready!\n")
     
     def setup_model(self):
-        """Initialize model architecture"""
-        print(f"Setting up {self.model_name} model...")
+        """Initialize ResNet50 model architecture"""
+        print(f"Setting up ResNet50 model...")
         
-        if self.model_name == "efficientnet_b0":
-            self.model = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
-            num_ftrs = self.model.classifier[1].in_features
-            self.model.classifier[1] = nn.Linear(num_ftrs, self.num_classes)
-            
-        elif self.model_name == "efficientnet_b3":
-            self.model = models.efficientnet_b3(weights=models.EfficientNet_B3_Weights.IMAGENET1K_V1)
-            num_ftrs = self.model.classifier[1].in_features
-            self.model.classifier[1] = nn.Linear(num_ftrs, self.num_classes)
-            
-        elif self.model_name == "resnet50":
-            self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
-            num_ftrs = self.model.fc.in_features
-            self.model.fc = nn.Linear(num_ftrs, self.num_classes)
-            
-        elif self.model_name == "mobilenet_v3":
-            self.model = models.mobilenet_v3_large(weights=models.MobileNet_V3_Large_Weights.IMAGENET1K_V2)
-            num_ftrs = self.model.classifier[3].in_features
-            self.model.classifier[3] = nn.Linear(num_ftrs, self.num_classes)
+        # Load ResNet50 with ImageNet pretrained weights
+        self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
         
-        else:
-            raise ValueError(f"Unknown model: {self.model_name}")
+        # Replace final fully connected layer for our number of classes
+        num_ftrs = self.model.fc.in_features
+        self.model.fc = nn.Linear(num_ftrs, self.num_classes)
         
+        # Move model to device (GPU/CPU)
         self.model = self.model.to(self.device)
         
         # Loss and optimizer
@@ -200,8 +191,8 @@ class PlantDiseaseTrainer:
         """Train for one epoch"""
         self.model.train()
         running_loss = 0.0
-        correct = 0
-        total = 0
+        all_preds = []
+        all_labels = []
         
         for inputs, labels in self.train_loader:
             inputs = inputs.to(self.device)
@@ -221,20 +212,25 @@ class PlantDiseaseTrainer:
             # Statistics
             running_loss += loss.item() * inputs.size(0)
             _, predicted = torch.max(outputs, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
+            
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
         
-        epoch_loss = running_loss / total
-        epoch_acc = 100 * correct / total
+        # Calculate metrics
+        epoch_loss = running_loss / len(all_labels)
+        accuracy = np.mean(np.array(all_preds) == np.array(all_labels))
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            all_labels, all_preds, average='weighted', zero_division=0
+        )
         
-        return epoch_loss, epoch_acc
+        return epoch_loss, accuracy * 100, precision, recall, f1
     
     def validate(self):
         """Validate the model"""
         self.model.eval()
         running_loss = 0.0
-        correct = 0
-        total = 0
+        all_preds = []
+        all_labels = []
         
         with torch.no_grad():
             for inputs, labels in self.val_loader:
@@ -246,13 +242,18 @@ class PlantDiseaseTrainer:
                 
                 running_loss += loss.item() * inputs.size(0)
                 _, predicted = torch.max(outputs, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+                
+                all_preds.extend(predicted.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
         
-        epoch_loss = running_loss / total
-        epoch_acc = 100 * correct / total
+        # Calculate metrics
+        epoch_loss = running_loss / len(all_labels)
+        accuracy = np.mean(np.array(all_preds) == np.array(all_labels))
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            all_labels, all_preds, average='weighted', zero_division=0
+        )
         
-        return epoch_loss, epoch_acc
+        return epoch_loss, accuracy * 100, precision, recall, f1
     
     def train(self):
         """Complete training loop"""
@@ -263,10 +264,10 @@ class PlantDiseaseTrainer:
             epoch_start = time.time()
             
             # Train
-            train_loss, train_acc = self.train_epoch()
+            train_loss, train_acc, train_precision, train_recall, train_f1 = self.train_epoch()
             
             # Validate
-            val_loss, val_acc = self.validate()
+            val_loss, val_acc, val_precision, val_recall, val_f1 = self.validate()
             
             # Update scheduler
             self.scheduler.step(val_acc)
@@ -275,8 +276,14 @@ class PlantDiseaseTrainer:
             # Save history
             self.history['train_loss'].append(train_loss)
             self.history['train_acc'].append(train_acc)
+            self.history['train_precision'].append(train_precision)
+            self.history['train_recall'].append(train_recall)
+            self.history['train_f1'].append(train_f1)
             self.history['val_loss'].append(val_loss)
             self.history['val_acc'].append(val_acc)
+            self.history['val_precision'].append(val_precision)
+            self.history['val_recall'].append(val_recall)
+            self.history['val_f1'].append(val_f1)
             self.history['learning_rates'].append(current_lr)
             self.history['epochs'].append(epoch + 1)
             
@@ -288,8 +295,8 @@ class PlantDiseaseTrainer:
             # Print progress
             epoch_time = time.time() - epoch_start
             print(f"Epoch {epoch+1}/{self.num_epochs} - {epoch_time:.2f}s")
-            print(f"  Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%")
-            print(f"  Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%")
+            print(f"  Train Loss: {train_loss:.4f} | Acc: {train_acc:.2f}% | P: {train_precision*100:.2f}% | R: {train_recall*100:.2f}% | F1: {train_f1*100:.2f}%")
+            print(f"  Val Loss: {val_loss:.4f} | Acc: {val_acc:.2f}% | P: {val_precision*100:.2f}% | R: {val_recall*100:.2f}% | F1: {val_f1*100:.2f}%")
             print(f"  LR: {current_lr:.6f} | Best Val Acc: {self.best_val_acc:.2f}%")
             print()
         
@@ -563,7 +570,7 @@ def main():
     
     # Training parameters
     config = {
-        'model_name': 'resnet50',  # Options: efficientnet_b0, efficientnet_b3, resnet50, mobilenet_v3
+        'model_name': 'resnet50',  # Using ResNet50 architecture
         'batch_size': 32,
         'num_epochs': 10,
         'learning_rate': 0.001

@@ -7,7 +7,7 @@ import numpy as np
 
 def plot_training_history(history_path: str, save_path: str = None):
     """
-    Plot training history (loss, accuracy, precision, recall, f1)
+    Plot training history (loss, accuracy, and learning rate)
     
     Args:
         history_path: Path to training_history.json
@@ -18,78 +18,52 @@ def plot_training_history(history_path: str, save_path: str = None):
         history = json.load(f)
     
     # Create figure with subplots
-    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     fig.suptitle('Training Metrics History', fontsize=16, fontweight='bold')
     
     epochs = history['epochs']
     
     # Plot 1: Loss (Cross-Entropy)
-    axes[0, 0].plot(epochs, history['train_loss'], 'b-', label='Training', linewidth=2, marker='o', markersize=4)
-    axes[0, 0].plot(epochs, history['val_loss'], 'r-', label='Validation', linewidth=2, marker='s', markersize=4)
-    axes[0, 0].set_xlabel('Epoch', fontsize=11)
-    axes[0, 0].set_ylabel('Cross-Entropy Loss', fontsize=11)
-    axes[0, 0].set_title('Loss (Cross-Entropy)', fontsize=12, fontweight='bold')
-    axes[0, 0].legend()
-    axes[0, 0].grid(alpha=0.3)
+    axes[0].plot(epochs, history['train_loss'], 'b-', label='Training', linewidth=2, marker='o', markersize=4)
+    axes[0].plot(epochs, history['val_loss'], 'r-', label='Validation', linewidth=2, marker='s', markersize=4)
+    axes[0].set_xlabel('Epoch', fontsize=11)
+    axes[0].set_ylabel('Cross-Entropy Loss', fontsize=11)
+    axes[0].set_title('Loss (Cross-Entropy)', fontsize=12, fontweight='bold')
+    axes[0].legend()
+    axes[0].grid(alpha=0.3)
     
     # Plot 2: Accuracy
-    train_acc = [acc * 100 for acc in history['train_acc']]
-    val_acc = [acc * 100 for acc in history['val_acc']]
+    # Check if accuracy values are already in percentage
+    train_acc = history['train_acc']
+    val_acc = history['val_acc']
+    if max(train_acc + val_acc) > 1.0:
+        # Already in percentage
+        train_acc_plot = train_acc
+        val_acc_plot = val_acc
+    else:
+        # Convert to percentage
+        train_acc_plot = [acc * 100 for acc in train_acc]
+        val_acc_plot = [acc * 100 for acc in val_acc]
     
-    axes[0, 1].plot(epochs, train_acc, 'b-', label='Training', linewidth=2, marker='o', markersize=4)
-    axes[0, 1].plot(epochs, val_acc, 'r-', label='Validation', linewidth=2, marker='s', markersize=4)
-    axes[0, 1].set_xlabel('Epoch', fontsize=11)
-    axes[0, 1].set_ylabel('Accuracy (%)', fontsize=11)
-    axes[0, 1].set_title('Accuracy', fontsize=12, fontweight='bold')
-    axes[0, 1].legend()
-    axes[0, 1].grid(alpha=0.3)
+    axes[1].plot(epochs, train_acc_plot, 'b-', label='Training', linewidth=2, marker='o', markersize=4)
+    axes[1].plot(epochs, val_acc_plot, 'r-', label='Validation', linewidth=2, marker='s', markersize=4)
+    axes[1].set_xlabel('Epoch', fontsize=11)
+    axes[1].set_ylabel('Accuracy (%)', fontsize=11)
+    axes[1].set_title('Accuracy', fontsize=12, fontweight='bold')
+    axes[1].legend()
+    axes[1].grid(alpha=0.3)
     
-    # Plot 3: Precision
-    train_prec = [p * 100 for p in history['train_precision']]
-    val_prec = [p * 100 for p in history['val_precision']]
-    
-    axes[0, 2].plot(epochs, train_prec, 'b-', label='Training', linewidth=2, marker='o', markersize=4)
-    axes[0, 2].plot(epochs, val_prec, 'r-', label='Validation', linewidth=2, marker='s', markersize=4)
-    axes[0, 2].set_xlabel('Epoch', fontsize=11)
-    axes[0, 2].set_ylabel('Precision (%)', fontsize=11)
-    axes[0, 2].set_title('Precision', fontsize=12, fontweight='bold')
-    axes[0, 2].legend()
-    axes[0, 2].grid(alpha=0.3)
-    
-    # Plot 4: Recall
-    train_rec = [r * 100 for r in history['train_recall']]
-    val_rec = [r * 100 for r in history['val_recall']]
-    
-    axes[1, 0].plot(epochs, train_rec, 'b-', label='Training', linewidth=2, marker='o', markersize=4)
-    axes[1, 0].plot(epochs, val_rec, 'r-', label='Validation', linewidth=2, marker='s', markersize=4)
-    axes[1, 0].set_xlabel('Epoch', fontsize=11)
-    axes[1, 0].set_ylabel('Recall (%)', fontsize=11)
-    axes[1, 0].set_title('Recall', fontsize=12, fontweight='bold')
-    axes[1, 0].legend()
-    axes[1, 0].grid(alpha=0.3)
-    
-    # Plot 5: F1-Score
-    train_f1 = [f * 100 for f in history['train_f1']]
-    val_f1 = [f * 100 for f in history['val_f1']]
-    
-    axes[1, 1].plot(epochs, train_f1, 'b-', label='Training', linewidth=2, marker='o', markersize=4)
-    axes[1, 1].plot(epochs, val_f1, 'r-', label='Validation', linewidth=2, marker='s', markersize=4)
-    axes[1, 1].set_xlabel('Epoch', fontsize=11)
-    axes[1, 1].set_ylabel('F1-Score (%)', fontsize=11)
-    axes[1, 1].set_title('F1-Score', fontsize=12, fontweight='bold')
-    axes[1, 1].legend()
-    axes[1, 1].grid(alpha=0.3)
-    
-    # Plot 6: All metrics comparison (validation only)
-    axes[1, 2].plot(epochs, val_acc, '-', label='Accuracy', linewidth=2, marker='o', markersize=4)
-    axes[1, 2].plot(epochs, val_prec, '-', label='Precision', linewidth=2, marker='s', markersize=4)
-    axes[1, 2].plot(epochs, val_rec, '-', label='Recall', linewidth=2, marker='^', markersize=4)
-    axes[1, 2].plot(epochs, val_f1, '-', label='F1-Score', linewidth=2, marker='d', markersize=4)
-    axes[1, 2].set_xlabel('Epoch', fontsize=11)
-    axes[1, 2].set_ylabel('Score (%)', fontsize=11)
-    axes[1, 2].set_title('Validation Metrics Comparison', fontsize=12, fontweight='bold')
-    axes[1, 2].legend()
-    axes[1, 2].grid(alpha=0.3)
+    # Plot 3: Learning Rate
+    if 'learning_rates' in history:
+        axes[2].plot(epochs, history['learning_rates'], 'g-', linewidth=2, marker='d', markersize=4)
+        axes[2].set_xlabel('Epoch', fontsize=11)
+        axes[2].set_ylabel('Learning Rate', fontsize=11)
+        axes[2].set_title('Learning Rate Schedule', fontsize=12, fontweight='bold')
+        axes[2].set_yscale('log')
+        axes[2].grid(alpha=0.3)
+    else:
+        # Hide the third plot if no learning rate data
+        axes[2].axis('off')
     
     plt.tight_layout()
     
@@ -217,37 +191,58 @@ def generate_all_plots(model_dir: str = "models"):
     print("Generating comprehensive visualization plots...")
     print("="*60)
     
+    # Try both old and new file names
+    history_files = [
+        model_path / "training_history_new.json",
+        model_path / "training_history.json"
+    ]
+    class_names_files = [
+        model_path / "class_names_new.json",
+        model_path / "class_names.json"
+    ]
+    
     # Plot training history
-    history_path = model_path / "training_history.json"
-    if history_path.exists():
-        print("\n1. Generating training metrics history...")
+    history_path = None
+    for file_path in history_files:
+        if file_path.exists():
+            history_path = file_path
+            break
+    
+    if history_path:
+        print(f"\n1. Generating training metrics history from {history_path.name}...")
         plot_training_history(
             str(history_path),
-            save_path=str(model_path / "training_metrics.png")
+            save_path=str(model_path / "training_metrics_new.png")
         )
     else:
-        print(f"⚠ Training history not found at {history_path}")
+        print(f"⚠ Training history not found. Tried: {', '.join([f.name for f in history_files])}")
     
     # Plot per-class metrics
     results_path = model_path / "test_results.json"
-    class_names_path = model_path / "class_names.json"
+    
+    # Find class names file
+    class_names_path = None
+    for file_path in class_names_files:
+        if file_path.exists():
+            class_names_path = file_path
+            break
     
     if results_path.exists():
-        print("\n2. Generating per-class metrics...")
+        print(f"\n2. Generating per-class metrics from {results_path.name}...")
         plot_per_class_metrics(
             str(results_path),
-            save_path=str(model_path / "per_class_metrics.png")
+            save_path=str(model_path / "per_class_metrics_new.png")
         )
         
-        if class_names_path.exists():
-            print("\n3. Generating confusion matrix...")
+        if class_names_path:
+            print(f"\n3. Generating confusion matrix using {class_names_path.name}...")
             plot_confusion_matrix(
                 str(results_path),
                 str(class_names_path),
-                save_path=str(model_path / "confusion_matrix.png")
+                save_path=str(model_path / "confusion_matrix_new.png")
             )
         else:
-            print(f"⚠ Class names not found at {class_names_path}")
+            print(f"⚠ Class names not found. Tried: {', '.join([f.name for f in class_names_files])}")
     else:
         print(f"⚠ Test results not found at {results_path}")
     

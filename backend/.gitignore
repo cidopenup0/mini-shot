@@ -10,14 +10,18 @@ ENV/
 .venv
 *.pyc
 
-# Model files
-models/*.pt
+# Model files (old 15-class files)
+models/plant_disease_model.pt
+models/class_names.json
+models/training_history.json
+
+# Keep new 38-class model files tracked
+models/plant_disease_model_new.pt
+
+# Other model formats
 models/*.pth
 models/*.onnx
-models/training_history.json
 models/test_results.json
-models/class_names.json
-models/*.png
 
 # Dataset
 data/raw/
