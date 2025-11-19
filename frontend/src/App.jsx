@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
+import About from './pages/About';
+import Login from './pages/Login';
 import History from './pages/History';
 import Classes from './pages/Classes';
 import Health from './pages/Health';
@@ -48,6 +50,22 @@ const Navigation = () => {
                 Home
               </span>
             </Link>
+            <Link to="/login" className={navLinkClass('/login')}>
+              <span className="flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 11-4 0 2 2 0 014 0zM12 14a5 5 0 00-5 5v1h10v-1a5 5 0 00-5-5z" />
+                </svg>
+                Login
+              </span>
+            </Link>
+          <Link to="/about" className={navLinkClass('/about')}>
+            <span className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 18h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              About
+            </span>
+          </Link>
             <Link to="/history" className={navLinkClass('/history')}>
               <span className="flex items-center">
                 <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -107,6 +125,30 @@ const Navigation = () => {
                   Home
                 </span>
               </Link>
+            <Link 
+              to="/login" 
+              className={navLinkClass('/login')}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <span className="flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 11-4 0 2 2 0 014 0zM12 14a5 5 0 00-5 5v1h10v-1a5 5 0 00-5-5z" />
+                </svg>
+                Login
+              </span>
+            </Link>
+            <Link 
+              to="/about" 
+              className={navLinkClass('/about')}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <span className="flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 18h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                About
+              </span>
+            </Link>
               <Link 
                 to="/history" 
                 className={navLinkClass('/history')}
@@ -193,6 +235,8 @@ function App() {
         <main className="flex-grow container mx-auto px-4 py-8">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/about" element={<About />} />
             <Route path="/history" element={<History />} />
             <Route path="/classes" element={<Classes />} />
             <Route path="/health" element={<Health />} />
