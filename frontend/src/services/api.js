@@ -73,6 +73,19 @@ export const api = {
       };
     }
   },
+
+  // Submit feedback for a prediction
+  submitFeedback: async (feedbackData) => {
+    try {
+      const response = await apiClient.post('/feedback', feedbackData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.detail || error.message || 'Failed to submit feedback' 
+      };
+    }
+  },
 };
 
 export default api;

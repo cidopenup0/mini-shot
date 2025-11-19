@@ -21,9 +21,14 @@ models/*.png
 
 # Dataset
 data/raw/
+data/test/
+data/val
 data/processed/
 *.zip
 *.tar.gz
+
+# Feedback Data
+feedback_data/*
 
 # Logs
 logs/

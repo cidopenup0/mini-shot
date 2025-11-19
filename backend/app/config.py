@@ -10,8 +10,8 @@ class Settings:
     
     # Model configuration
     BASE_DIR = Path(__file__).resolve().parent.parent
-    MODEL_PATH = os.getenv("MODEL_PATH", str(BASE_DIR / "models" / "plant_disease_model.pt"))
-    MODEL_VERSION = os.getenv("MODEL_VERSION", "1.0.0")
+    MODEL_PATH = os.getenv("MODEL_PATH", str(BASE_DIR / "models" / "plant_disease_model_new.pt"))
+    MODEL_VERSION = os.getenv("MODEL_VERSION", "2.0.0")
     
     # Image preprocessing
     IMAGE_SIZE = (224, 224)  # Standard input size for most CNN models
@@ -21,8 +21,8 @@ class Settings:
     # Logging
     LOG_DB_PATH = os.getenv("LOG_DB_PATH", str(BASE_DIR / "logs" / "predictions.db"))
     
-    # Disease classes - Load from class_names.json
-    CLASS_NAMES_PATH = BASE_DIR / "models" / "class_names.json"
+    # Disease classes - Load from class_names_new.json
+    CLASS_NAMES_PATH = BASE_DIR / "models" / "class_names_new.json"
     
     def _load_class_names(self):
         """Load class names from JSON file"""
