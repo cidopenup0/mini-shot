@@ -1,6 +1,70 @@
 # Plant Disease Detection Backend
 
 FastAPI backend for plant disease detection using deep learning.
+## Overview
+
+This backend is built with FastAPI and PyTorch. It serves a ResNet50-based plant disease detection model, provides REST API endpoints, and manages prediction history and user feedback for model improvement.
+## Features
+- Predict plant disease from leaf images
+- Store prediction history and feedback
+- Export feedback for retraining
+- Visualize dataset and training metrics
+
+## Structure
+```
+backend/
+├── app/              # FastAPI app modules
+├── data/             # Dataset (train/val/test splits)
+├── models/           # Model files, class names, training history
+├── feedback_data/    # User feedback images
+├── logs/             # SQLite database
+├── training/         # Training scripts and visualization
+├── visualize_dataset.py # Dataset visualization script
+├── requirements.txt  # Python dependencies
+├── main.py           # API entry point
+```
+
+## Quick Start
+
+1. Install dependencies:
+  ```bash
+  python -m venv .venv
+  .\.venv\Scripts\activate
+  pip install -r requirements.txt
+  ```
+2. Place model files in `models/`:
+  - `plant_disease_model_new.pt`
+  - `class_names_new.json`
+3. Start API:
+  ```bash
+  python main.py
+  ```
+
+## API Endpoints
+- `POST /predict` - Predict disease from image
+- `GET /history` - Get prediction history
+- `GET /classes` - List all disease classes
+- `GET /health` - Backend health check
+- `POST /feedback` - Submit feedback
+- `GET /feedback/export` - Export feedback data
+
+## Training & Visualization
+- Train model: `training/train_full_model.py`
+- Visualize training: `training/visualize_results.py`
+- Visualize dataset: `visualize_dataset.py`
+
+## Feedback & Retraining
+- Feedback images stored in `feedback_data/`
+- Use feedback export for model improvement
+
+## Environment Variables
+- See `.env.example` for configuration
+
+---
+For frontend setup, see `../frontend/README.md`.
+# Plant Disease Detection Backend
+
+FastAPI backend for plant disease detection using deep learning.
 
 ## Features
 
